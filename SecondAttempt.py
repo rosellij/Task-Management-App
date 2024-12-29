@@ -31,19 +31,22 @@ def datetimeparse(strarg, monthfirst: bool = True):
     monthindex, dateindex = 0 if monthfirst else 1, 1 if monthfirst else 0
     
     from re import finditer as re_finditer, sub as re_sub
-    from datetime import time as dt_time, date as dt_date, datetime as dt_datetime
+    from datetime import datetime as dt
 
     long_months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
     short_months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
-    dateexp, timeexp = r"\b(?:(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:4|5|6|7|8|9|0)\s?th|3\s?rd|2\s?nd|1\s?st)?)|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty(?:-|\s)first|twenty(?:-|\s)second|twenty(?:-|s)third|twenty(?:-|\s)fourth|twenty(?:-|\s)fifth|twenty(?:-|\s)sixth|twenty(?:-|\s)seventh|twenty(?:-|\s)eighth|twenty(?:-|\s)ninth|thirtieth|thirty(?:-|\s)first))(?:\sof)?|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:\/|\s|-)(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:4|5|6|7|8|9|0)\s?th|3\s?rd|2\s?nd|1\s?st)?)|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:(?:\/|\s|-)(?:[0-9]{2}|[0-9]{4}))?\b", r"(?:(?:(?:0|1)?[1-9])|(?:2[0-3])|(?:00))(?::[0-5][0-9])?(?: ?(?:am|pm))?"
+    dateexp, timeexp = r"\b(?:(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:(?<=4|5|6|7|8|9|0)|(?<=11|12|13))\s?th|(?<!1)3\s?rd|(?<!1)2\s?nd|(?<!1)1\s?st)?)|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty(?:-|\s)first|twenty(?:-|\s)second|twenty(?:-|s)third|twenty(?:-|\s)fourth|twenty(?:-|\s)fifth|twenty(?:-|\s)sixth|twenty(?:-|\s)seventh|twenty(?:-|\s)eighth|twenty(?:-|\s)ninth|thirtieth|thirty(?:-|\s)first))(?:\sof)?|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:\/|\s|-)(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:(?<=4|5|6|7|8|9|0)|(?<=11|12|13))\s?th|(?<!1)3\s?rd|(?<!1)2\s?nd|(?<!1)1\s?st)?)|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:(?:\/|\s|-)(?:[0-9]{2}|[0-9]{4}))?\b", r"(?:(?:(?:0|1)?[1-9])|(?:2[0-3])|(?:00))(?::[0-5][0-9])?(?: ?(?:am|pm))?"
     raw_date, raw_time = re_finditer(pattern=dateexp, string=strarg.lower()), re_finditer(pattern=timeexp, string=strarg.lower())
+    raw_date_tuple, raw_time_tuple = tuple(raw_date), tuple(raw_time)
 
     # 12-29-2024 12:12PM apparently one can only open the raw_date and raw_time iterators ONCE, so we need to store them as variables somewhere like up here and replace all references to tuple(raw_date) and such with the corresponding variables
 
-    raw_time_len_checker = False if False in tuple(True if (len(anyitem[0]) >= 3) else False for anyitem in tuple(raw_time)) else True
-    if len(tuple(raw_time)) > 0 and raw_time_len_checker:
-        mid_time = tuple(anyitem for anyitem in tuple(raw_time) if len(anyitem[0]) >= 3)[-1][0]
+    print(list(True if (len(anyitem[0]) >= 3) else False for anyitem in raw_time_tuple))
+
+    raw_time_len_checker = False if True not in tuple(True if (len(anyitem[0]) >= 3) else False for anyitem in raw_time_tuple) else True
+    if len(raw_time_tuple) > 0 and raw_time_len_checker:
+        mid_time = tuple(anyitem for anyitem in raw_time_tuple if len(anyitem[0]) >= 3)[-1][0]
 
         hourmindict = {"hour": int(mid_time[0:2] if mid_time[1].isnumeric() else mid_time[0])}
         if ":" in mid_time:
@@ -53,16 +56,14 @@ def datetimeparse(strarg, monthfirst: bool = True):
         if mid_time[-2:] == "am" and hourmindict["hour"] == 12:
             hourmindict["hour"] = 0
     
-    elif len(tuple(raw_time)) == 0:
-        hourmindict = None
+    elif len(raw_time_tuple) == 0 or not raw_time_len_checker:
+        hourmindict = dict()
 
-    print(tuple(raw_date))
-    pre_open_raw_date = tuple(raw_date)[-1][0] # rawdate needs to be opened up before going into regex function for mysterious reasons beyond my comprehension
-    print(tuple(raw_date))
-    if len(tuple(raw_date)) > 0:
-        mid_date = re_sub(r"\/|\s|-", " ", pre_open_raw_date).split()
+    if len(raw_date_tuple) > 0:
+        mid_date = re_sub(r"\/|\s|-", " ", raw_date_tuple[-1][0]).split()
+        mid_date = [mid_date[0][:-2]] + mid_date[1:] if len(mid_date[0]) >= 3 else mid_date
 
-        if (mid_date[0].isnumeric() and mid_date[1].isnumeric() and int(mid_date[monthindex]) <= 12 and int(mid_date[dateindex]) <= 31) or (mid_date[0].isalpha() and mid_date[1].isnumeric() and mid_date[1] <= 31) or (mid_date[1].isalpha() and mid_date[0].isnumeric() and mid_date[0] <= 31):
+        if (mid_date[0].isnumeric() and mid_date[1].isnumeric() and int(mid_date[monthindex]) <= 12 and int(mid_date[dateindex]) <= 31) or (mid_date[0].isalpha() and mid_date[1].isnumeric() and int(mid_date[1]) <= 31) or (mid_date[1].isalpha() and mid_date[0].isnumeric() and int(mid_date[0]) <= 31):
 
             monthdateyeardict = {"year": int(mid_date[-1])} if len(mid_date[-1]) == 4 else {"year": int(mid_date[-1]) + 2000}
             if mid_date[0].isalpha():
@@ -83,14 +84,16 @@ def datetimeparse(strarg, monthfirst: bool = True):
 
         elif (mid_date[0].isalpha() and mid_date[1].isalpha()) or (mid_date[monthindex].isnumeric() and mid_date[dateindex].isnumeric() and (int(mid_date[monthindex]) > 12 or int(mid_date[dateindex]) > 31)) or (mid_date[0].isalpha() and mid_date[1].isnumeric() and int(mid_date[1]) > 31) or (mid_date[1].isalpha() and mid_date[0].isnumeric() and int(mid_date[0]) > 31):
 
-            monthdateyeardict = None
+            monthdateyeardict = dict()
 
-    elif len(tuple(raw_date)) == 0:
-        monthdateyeardict = None
+    elif len(raw_date_tuple) == 0:
+        monthdateyeardict = dict()
 
     # mid_date, mid_time = tuple(raw_date)[-1][0], tuple(anyitem for anyitem in tuple(raw_time) if len(anyitem[0]) >= 3)[-1][0]
 
-    return hourmindict, monthdateyeardict
+    return_year, return_month, return_date, return_hour, return_minute = (monthdateyeardict.get("year") if monthdateyeardict.get("year") != None else dt.)
+
+    # return dt.fromisoformat(f"{monthdateyeardict.get("year") if }")
     
     # monthexp = r"(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)"
     # dateexp = r"[0-9]{1,2}"
@@ -105,6 +108,7 @@ def datetimeparse(strarg, monthfirst: bool = True):
     # # first regex: three number dates/natural langauge months
     # # second regex: 2nd of january 2024 / january 2nd 2024?
     # # (?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty(?:-|\h)first|twenty(?:-|\h)second|twenty(?:-|\h)third|twenty(?:-|\h)fourth|twenty(?:-|\h)fifth|twenty(?:-|\h)sixth|twenty(?:-|\h)seventh|twenty(?:-|\h)eighth|twenty(?:-|\h)ninth|thirtieth|thirty(?:-|\h)first|)
+    # \b(?:(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:11|12|13|4|5|6|7|8|9|0)\s?th|[^1]3\s?rd|2\s?nd|1\s?st)?)|(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty(?:-|\s)first|twenty(?:-|\s)second|twenty(?:-|s)third|twenty(?:-|\s)fourth|twenty(?:-|\s)fifth|twenty(?:-|\s)sixth|twenty(?:-|\s)seventh|twenty(?:-|\s)eighth|twenty(?:-|\s)ninth|thirtieth|thirty(?:-|\s)first))(?:\sof)?|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:\/|\s|-)(?:(?:(?:(?:[1-2][0-9])|(?:3(?:0|1))|(?:0?[1-9]))(?:(?:4|5|6|7|8|9|0)\s?th|3\s?rd|2\s?nd|1\s?st)?)|(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))(?:(?:\/|\s|-)(?:[0-9]{2}|[0-9]{4}))?\b
 
 def qualifiersparse(strarg):
 
@@ -127,13 +131,13 @@ def qualifiersparse(strarg):
 def PanicUserInput():
 
     # userinput = input("Welcome to Python time! Input a new task and some attributes: ")
-    userinput = "I am the original 10-20-2024 12:20AM          starwalker"
+    userinput = "Will this work? 10-10-24 who knows! 3PM"
 
     qualifiers = qualifiersparse(userinput)
-    rawdatetime = tuple(tuple(anyitem) for anyitem in datetimeparse(userinput))
-    date, time = rawdatetime[0][-1][0] if len(rawdatetime[0]) >= 1 else None, rawdatetime[1][-1][0] if len(rawdatetime[1]) >= 1 else None
+    # rawdatetime = tuple(tuple(anyitem) for anyitem in datetimeparse(userinput))
+    # date, time = rawdatetime[0][-1][0] if len(rawdatetime[0]) >= 1 else None, rawdatetime[1][-1][0] if len(rawdatetime[1]) >= 1 else None
 
-    return date, time, qualifiers
+    # return date, time, qualifiers
 
     # userinput = input("Welcome to Python time! Input a new task and some attributes: ")
     # print(userinput)
@@ -160,10 +164,13 @@ def PanicUserInput():
     # qualifiers_list = [anyinput for anyinput in newuserinput if len(anyinput) == 2 and anyinput[0].isalpha() and anyinput[-1].isnumeric()]
     # print(qualifiers_list)
 
-# PanicUserInput()
+# print(PanicUserInput())
+
+from datetime import datetime as dt
+
+print(dt.today().year)
 
 # Parse different parts from the user input if necessary
 
 # Log the task into the list
 
-print(datetimeparse("I am the original 10-20-2024         starwalker"))
