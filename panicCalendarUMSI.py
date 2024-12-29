@@ -320,8 +320,8 @@ def repeatRequest():
 #checkAndUpdateRepeats()
     
 # 'STANDARD USE FUNCTIONS'
-#initiateAndCheckTextFile() # RUN THIS BEFORE ANYTHING
-#checkAndUpdateRepeats() # RUN THIS BEFORE ANYTHING
+initiateAndCheckTextFile() # RUN THIS BEFORE ANYTHING
+checkAndUpdateRepeats() # RUN THIS BEFORE ANYTHING
 #getUserInput()
 #giveResults()
 #repeatRequest()
