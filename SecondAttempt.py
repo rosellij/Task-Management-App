@@ -61,11 +61,17 @@ def datetimeparse(strarg, monthfirst: bool = True):
 
     if len(raw_date_tuple) > 0:
         mid_date = re_sub(r"\/|\s|-", " ", raw_date_tuple[-1][0]).split()
-        mid_date = [mid_date[0][:-2]] + mid_date[1:] if len(mid_date[0]) >= 3 else mid_date
+        if len(mid_date[0]) >= 3 and mid_date[0][0].isnumeric():
+            mid_date = [mid_date[0][:-2]] + mid_date[1:]
+        elif len(mid_date[1]) >= 3 and mid_date[1][0].isnumeric():
+            mid_date = [mid_date[0], mid_date[1][:-2]] if len(mid_date) == 2 else [mid_date[0], mid_date[1][:-2], mid_date[2]]
 
         if (mid_date[0].isnumeric() and mid_date[1].isnumeric() and int(mid_date[monthindex]) <= 12 and int(mid_date[dateindex]) <= 31) or (mid_date[0].isalpha() and mid_date[1].isnumeric() and int(mid_date[1]) <= 31) or (mid_date[1].isalpha() and mid_date[0].isnumeric() and int(mid_date[0]) <= 31):
 
-            monthdateyeardict = {"year": int(mid_date[-1])} if len(mid_date[-1]) == 4 else {"year": int(mid_date[-1]) + 2000}
+            # if there are three values in the list, take the final value as is if it's four digits or add 2000 if it's a two digit value, else just initiate the dict
+
+            monthdateyeardict = {"year": int(mid_date[-1])} if (len(mid_date) == 3 and len(mid_date[-1]) == 4) else {"year": int(mid_date[-1]) + int(str(dt.today().year)[:2])*100} if (len(mid_date) == 3 and len(mid_date[-1]) == 2) else dict()
+            # monthdateyeardict = {"year": int(mid_date[-1])} if (len(mid_date[-1]) == 4 and len(mid_date) == 3) else {"year": int(mid_date[-1]) + 2000}
             if mid_date[0].isalpha():
                 if mid_date[0] in long_months:
                     monthdateyeardict["month"] = long_months.index(mid_date[0]) + 1
@@ -91,8 +97,10 @@ def datetimeparse(strarg, monthfirst: bool = True):
 
     # mid_date, mid_time = tuple(raw_date)[-1][0], tuple(anyitem for anyitem in tuple(raw_time) if len(anyitem[0]) >= 3)[-1][0]
 
-    return_year, return_month, return_date, return_hour, return_minute = (monthdateyeardict.get("year") if monthdateyeardict.get("year") != None else dt.)
+    return_year, return_month, return_date, return_hour, return_minute = (monthdateyeardict.get("year") if monthdateyeardict.get("year") != None else dt.today().year), (monthdateyeardict.get("month") if monthdateyeardict.get("month") != None else dt.today().month), monthdateyeardict["date"], (hourmindict.get("hour") if hourmindict.get("hour") != None else 0), (hourmindict.get("minute") if hourmindict.get("minute") != None else 0)
 
+    # return dt.fromisoformat(f"""{return_year}-{"0" + str(return_month) if len(str(return_month)) == 1 else return_month}-{"0" + str(return_date) if len(str(return_date)) == 1 else return_date}T{"0" + str(return_hour) if len(str(return_hour)) == 1 else return_hour}:{"0" + str(return_minute) if len(str(return_minute)) == 1 else return_minute}""")
+    return dt(return_year, return_month, return_date, return_hour, return_minute)
     # return dt.fromisoformat(f"{monthdateyeardict.get("year") if }")
     
     # monthexp = r"(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)"
@@ -166,9 +174,7 @@ def PanicUserInput():
 
 # print(PanicUserInput())
 
-from datetime import datetime as dt
-
-print(dt.today().year)
+print(datetimeparse("Steven goes to the farm 25th of august 2024"))
 
 # Parse different parts from the user input if necessary
 
